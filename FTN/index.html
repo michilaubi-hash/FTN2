@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>FTN – Punktezähler</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FTN Punkte">
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --muted:#94a3b8;
+      --text:#e2e8f0;
+      --line:rgba(148,163,184,.18);
+      --pill:rgba(148,163,184,.10);
+      --accent:#38bdf8;
+      --good:#22c55e;
+      --bad:#f43f5e;
+      --shadow: 0 10px 35px rgba(0,0,0,.35);
+      --r:18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:-apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% 0%, #111c35 0%, var(--bg) 55%);
+      color:var(--text);
+    }
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 14px 40px;
+      padding-bottom: calc(40px + env(safe-area-inset-bottom));
+    }
+
+    .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .title{ display:flex; flex-direction:column; gap:4px; min-width: 240px; }
+    h1{ margin:0; font-size: 20px; letter-spacing:.2px; }
+    .sub{ color:var(--muted); font-size: 13px; line-height: 1.35; }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      align-items: center;
+    }
+    button{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 650;
+      cursor:pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
+      transition: transform .04s ease;
+      -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
+    }
+    button:active{ transform: translateY(1px); }
+    .primary{
+      background: linear-gradient(180deg, rgba(56,189,248,.22), rgba(56,189,248,.10));
+      border-color: rgba(56,189,248,.35);
+    }
+    .secondary{ background: rgba(255,255,255,.05); }
+    .danger{
+      background: linear-gradient(180deg, rgba(244,63,94,.22), rgba(244,63,94,.10));
+      border-color: rgba(244,63,94,.35);
+    }
+    .spacer{ width: 16px; height: 1px; }
+
+    .card{
+      background: rgba(15,23,42,.78);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .players{
+      display:grid;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.03);
+    }
+    .players .label{ color:var(--muted); font-size:12px; padding-top: 8px; }
+
+    .nameWrap{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content: center;
+    }
+    .nameInput{
+      width:100%;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 10px;
+      font-size: 14px;
+      font-weight: 650;
+      outline: none;
+      min-width: 140px;
+    }
+    .removePlayerBtn{
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      color: #ff9db1;
+      font-weight: 900;
+      font-size: 16px;
+      line-height: 1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    }
+    .removePlayerBtn:active{ transform: translateY(1px); }
+    .removePlayerBtn[disabled]{
+      opacity:.35;
+      cursor:not-allowed;
+      transform:none;
+    }
+
+    .rounds{ padding: 10px 12px 6px; }
+    .roundRow{
+      display:grid;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .roundRow:last-child{ border-bottom:0; }
+    .roundTag{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .cell{
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      padding: 10px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      min-height: 104px;
+      position: relative;
+    }
+    .miniLabel{ color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+    .num{
+      width:100%;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 10px;
+      font-size: 16px;
+      outline:none;
+    }
+    .pts{
+      grid-column: 1 / -1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: var(--pill);
+      border: 1px solid var(--line);
+      margin-top: 2px;
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+    .pts .k{ color: var(--muted); font-weight: 800; font-size: 12px; }
+    .pts .v{ font-size: 16px; }
+    .pts.good .v{ color: var(--good); }
+    .pts.bad .v{ color: var(--bad); }
+
+    /* 0-Regel Warnung in der betroffenen Runde + Spieler */
+    .ruleWarn{
+      grid-column: 1 / -1;
+      display:none;
+      margin-top: 2px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(244,63,94,.45);
+      background: rgba(244,63,94,.12);
+      color: #ff9db1;
+      font-weight: 900;
+      font-size: 12px;
+      line-height: 1.2;
+      text-align: left;
+    }
+    .cell.isForbidden .ruleWarn{ display:block; }
+
+    .footer{
+      border-top: 1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      padding: 12px;
+      display:grid;
+      gap: 10px;
+      align-items:center;
+    }
+    .sumTag{ color: var(--muted); font-weight: 900; font-size: 13px; text-align:center; }
+    .sumBox{
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      padding: 10px 12px;
+      font-weight: 950;
+      font-size: 18px;
+      text-align:center;
+      min-width: 120px;
+    }
+
+    .bottomInfo{
+      margin-top: 14px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-start;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .pillInfo{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      border-radius: 999px;
+      padding: 8px 10px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .dot{ width:8px; height:8px; border-radius:999px; background: var(--accent); opacity: .9; }
+
+    @media (max-width: 720px){
+      .roundTag{ height: 40px; }
+      .cell{ padding: 9px; min-height: 106px; }
+      .nameInput{ min-width: 120px; }
+      .removePlayerBtn{ width: 34px; height: 34px; border-radius: 12px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>FTN Punktezähler</h1>
+        <div class="sub">✅ richtig: 10 + (angesagt²) · ❌ falsch: − |angesagt − tatsächlich|</div>
+      </div>
+
+      <div class="actions">
+        <button class="secondary" type="button" onclick="addPlayer()">+ Spieler</button>
+        <button class="primary" type="button" onclick="addRound()">+ Runde</button>
+        <span class="spacer" aria-hidden="true"></span>
+        <button class="danger" type="button" onclick="resetAll()">Reset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="players" id="playersHeader"></div>
+      <div class="rounds" id="roundBody"></div>
+      <div class="footer" id="footerSums"></div>
+    </div>
+
+    <div class="bottomInfo">
+      <div class="pillInfo"><span class="dot"></span><span id="status">bereit</span></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "ftn_dynamic_players_v3";
+    let state = loadState();
+
+    function defaultState(){
+      return {
+        players: ["Spieler 1","Spieler 2","Spieler 3"],
+        rounds: [] // { bid:[], actual:[] } arrays length = players.length
+      };
+    }
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const s = raw ? JSON.parse(raw) : defaultState();
+        return sanitizeState(s);
+      }catch{
+        return defaultState();
+      }
+    }
+
+    function sanitizeState(s){
+      if (!s || !Array.isArray(s.players) || s.players.length < 1) s = defaultState();
+      if (!Array.isArray(s.rounds)) s.rounds = [];
+      for (const r of s.rounds){
+        if (!Array.isArray(r.bid)) r.bid = [];
+        if (!Array.isArray(r.actual)) r.actual = [];
+        while (r.bid.length < s.players.length) r.bid.push(null);
+        while (r.actual.length < s.players.length) r.actual.push(null);
+        if (r.bid.length > s.players.length) r.bid = r.bid.slice(0, s.players.length);
+        if (r.actual.length > s.players.length) r.actual = r.actual.slice(0, s.players.length);
+      }
+      return s;
+    }
+
+    function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function setStatus(msg){ document.getElementById("status").textContent = msg; }
+
+    function numOrNull(v){
+      if (v === "" || v === null || v === undefined) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function calcPoints(bid, actual){
+      if (bid === null || actual === null) return 0;
+      if (bid === actual) return 10 + (bid * bid);
+      return -Math.abs(bid - actual);
+    }
+
+    function pointsClass(points){
+      if (points > 0) return "good";
+      if (points < 0) return "bad";
+      return "";
+    }
+
+    function gridTemplate(){
+      return `80px repeat(${state.players.length}, minmax(160px, 1fr))`;
+    }
+
+    function renderHeader(){
+      const header = document.getElementById("playersHeader");
+      header.style.gridTemplateColumns = gridTemplate();
+      header.innerHTML = "";
+
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = "Runde";
+      header.appendChild(label);
+
+      for (let i = 0; i < state.players.length; i++){
+        const wrap = document.createElement("div");
+        wrap.className = "nameWrap";
+
+        const inp = document.createElement("input");
+        inp.className = "nameInput";
+        inp.value = state.players[i];
+        inp.setAttribute("data-kind", "playerName");
+        inp.setAttribute("data-player", String(i));
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "removePlayerBtn";
+        btn.textContent = "×";
+        btn.setAttribute("title", "Spieler entfernen");
+        btn.setAttribute("aria-label", "Spieler entfernen");
+        btn.setAttribute("data-kind", "removePlayer");
+        btn.setAttribute("data-player", String(i));
+        if (state.players.length <= 1) btn.disabled = true;
+
+        wrap.appendChild(inp);
+        wrap.appendChild(btn);
+        header.appendChild(wrap);
+      }
+    }
+
+    function roundRowHTML(r){
+      let cols = "";
+      for (let p=0; p<state.players.length; p++){
+        cols += `
+          <div class="cell" data-kind="cell" data-round="${r}" data-player="${p}">
+            <div>
+              <div class="miniLabel">angesagt</div>
+              <input class="num" type="number" min="0" inputmode="numeric"
+                data-kind="bid" data-round="${r}" data-player="${p}">
+            </div>
+            <div>
+              <div class="miniLabel">tatsächlich</div>
+              <input class="num" type="number" min="0" inputmode="numeric"
+                data-kind="actual" data-round="${r}" data-player="${p}">
+            </div>
+
+            <div class="pts" data-kind="ptsBox" data-round="${r}" data-player="${p}">
+              <span class="k">punkte</span>
+              <span class="v" data-kind="points" data-round="${r}" data-player="${p}">0</span>
+            </div>
+
+            <div class="ruleWarn" data-kind="ruleWarn" data-round="${r}" data-player="${p}">
+              ❌ 0 ist hier nicht erlaubt (3× in Folge)
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="roundRow" style="grid-template-columns:${gridTemplate()}">
+          <div class="roundTag">#${r+1}</div>
+          ${cols}
+        </div>
+      `;
+    }
+
+    function renderRounds(){
+      const body = document.getElementById("roundBody");
+      body.innerHTML = "";
+
+      // Runden (Zeilen) sind IMMER über der Summe (Footer) — Footer ist separat unten
+      for (let r=0; r<state.rounds.length; r++){
+        body.insertAdjacentHTML("beforeend", roundRowHTML(r));
+      }
+
+      // Werte + Punkte
+      for (let r=0; r<state.rounds.length; r++){
+        for (let p=0; p<state.players.length; p++){
+          const bid = state.rounds[r].bid[p];
+          const act = state.rounds[r].actual[p];
+
+          const bidEl = document.querySelector(`input[data-kind="bid"][data-round="${r}"][data-player="${p}"]`);
+          const actEl = document.querySelector(`input[data-kind="actual"][data-round="${r}"][data-player="${p}"]`);
+          bidEl.value = (bid === null || bid === undefined) ? "" : bid;
+          actEl.value = (act === null || act === undefined) ? "" : act;
+
+          const pts = calcPoints(bid, act);
+          const ptsEl = document.querySelector(`span[data-kind="points"][data-round="${r}"][data-player="${p}"]`);
+          ptsEl.textContent = pts;
+
+          const box = document.querySelector(`div[data-kind="ptsBox"][data-round="${r}"][data-player="${p}"]`);
+          box.classList.remove("good","bad");
+          const cls = pointsClass(pts);
+          if (cls) box.classList.add(cls);
+        }
+      }
+
+      renderFooterSums();
+      updateZeroRuleViolations();
+    }
+
+    function recalcSums(){
+      const sums = new Array(state.players.length).fill(0);
+      for (let r=0; r<state.rounds.length; r++){
+        for (let p=0; p<state.players.length; p++){
+          sums[p] += calcPoints(state.rounds[r].bid[p], state.rounds[r].actual[p]);
+        }
+      }
+      return sums;
+    }
+
+    function renderFooterSums(){
+      const footer = document.getElementById("footerSums");
+      footer.style.gridTemplateColumns = gridTemplate();
+      footer.innerHTML = "";
+
+      const tag = document.createElement("div");
+      tag.className = "sumTag";
+      tag.textContent = "Summe";
+      footer.appendChild(tag);
+
+      const sums = recalcSums();
+      for (let p=0; p<state.players.length; p++){
+        const box = document.createElement("div");
+        box.className = "sumBox";
+        box.textContent = sums[p];
+        footer.appendChild(box);
+      }
+    }
+
+    // Regel: 0 darf max. 2× in Folge angesagt werden
+    // => Verboten ist die Runde, in der es zum 3. Mal in Folge 0 wäre.
+    function updateZeroRuleViolations(){
+      for (let r=0; r<state.rounds.length; r++){
+        for (let p=0; p<state.players.length; p++){
+          const cell = document.querySelector(`div[data-kind="cell"][data-round="${r}"][data-player="${p}"]`);
+          if (!cell) continue;
+
+          const bid = state.rounds[r].bid[p];
+          let forbidden = false;
+
+          if (bid === 0){
+            const prev1 = (r - 1 >= 0) ? state.rounds[r - 1].bid[p] : null;
+            const prev2 = (r - 2 >= 0) ? state.rounds[r - 2].bid[p] : null;
+            if (prev1 === 0 && prev2 === 0) forbidden = true; // 3× in Folge
+          }
+
+          cell.classList.toggle("isForbidden", forbidden);
+        }
+      }
+    }
+
+    // --- Events (Delegation)
+    document.getElementById("roundBody").addEventListener("input", (e) => {
+      const el = e.target;
+      if (!(el instanceof HTMLInputElement)) return;
+
+      const kind = el.dataset.kind;
+      if (kind !== "bid" && kind !== "actual") return;
+
+      const r = Number(el.dataset.round);
+      const p = Number(el.dataset.player);
+      if (!Number.isFinite(r) || !Number.isFinite(p)) return;
+
+      const bidEl = document.querySelector(`input[data-kind="bid"][data-round="${r}"][data-player="${p}"]`);
+      const actEl = document.querySelector(`input[data-kind="actual"][data-round="${r}"][data-player="${p}"]`);
+      const bidV = numOrNull(bidEl.value);
+      const actV = numOrNull(actEl.value);
+
+      state.rounds[r].bid[p] = bidV;
+      state.rounds[r].actual[p] = actV;
+
+      const pts = calcPoints(bidV, actV);
+      const ptsEl = document.querySelector(`span[data-kind="points"][data-round="${r}"][data-player="${p}"]`);
+      ptsEl.textContent = pts;
+
+      const box = document.querySelector(`div[data-kind="ptsBox"][data-round="${r}"][data-player="${p}"]`);
+      box.classList.remove("good","bad");
+      const cls = pointsClass(pts);
+      if (cls) box.classList.add(cls);
+
+      saveState();
+      renderFooterSums();
+      updateZeroRuleViolations();
+      setStatus("gespeichert");
+    });
+
+    document.getElementById("playersHeader").addEventListener("input", (e) => {
+      const el = e.target;
+      if (!(el instanceof HTMLInputElement)) return;
+      if (el.dataset.kind !== "playerName") return;
+
+      const p = Number(el.dataset.player);
+      if (!Number.isFinite(p)) return;
+
+      state.players[p] = el.value || `Spieler ${p+1}`;
+      saveState();
+      setStatus("Namen gespeichert");
+    });
+
+    document.getElementById("playersHeader").addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.dataset.kind !== "removePlayer") return;
+
+      const p = Number(target.dataset.player);
+      if (!Number.isFinite(p)) return;
+
+      if (state.players.length <= 1) return;
+
+      const name = state.players[p] || `Spieler ${p+1}`;
+      const ok = confirm(`Spieler "${name}" wirklich entfernen?\nAlle seine Werte werden gelöscht.`);
+      if (!ok) return;
+
+      // Spieler entfernen
+      state.players.splice(p, 1);
+      // In allen Runden die Werte an Index p entfernen
+      for (const r of state.rounds){
+        r.bid.splice(p, 1);
+        r.actual.splice(p, 1);
+      }
+
+      // falls keine Spieler übrig (sollte nicht), zurücksetzen
+      if (state.players.length < 1){
+        state = defaultState();
+      }
+
+      saveState();
+      renderHeader();
+      renderRounds();
+      setStatus(`"${name}" entfernt`);
+    });
+
+    // --- Buttons
+    window.addRound = function addRound(){
+      const n = state.players.length;
+      state.rounds.push({ bid: new Array(n).fill(null), actual: new Array(n).fill(null) });
+      saveState();
+
+      // Neue Runde erscheint als neue Zeile direkt über dem Footer/Summe
+      renderHeader();
+      renderRounds();
+
+      setStatus(`Runde #${state.rounds.length} hinzugefügt`);
+
+      const body = document.getElementById("roundBody");
+      const last = body.lastElementChild;
+      if (last) last.scrollIntoView({behavior:"smooth", block:"end"});
+    };
+
+    window.addPlayer = function addPlayer(){
+      const newName = `Spieler ${state.players.length + 1}`;
+      state.players.push(newName);
+
+      for (const r of state.rounds){
+        r.bid.push(null);
+        r.actual.push(null);
+      }
+
+      saveState();
+      renderHeader();
+      renderRounds();
+      setStatus(`${newName} hinzugefügt`);
+    };
+
+    window.resetAll = function resetAll(){
+      const ok = confirm("Wirklich alles zurücksetzen? (Alle Runden & Punkte werden gelöscht)");
+      if (!ok) return;
+
+      state = defaultState();
+      localStorage.removeItem(STORAGE_KEY);
+
+      state.rounds.push({ bid: new Array(state.players.length).fill(null), actual: new Array(state.players.length).fill(null) });
+      saveState();
+
+      renderHeader();
+      renderRounds();
+      setStatus("alles zurückgesetzt");
+    };
+
+    // Init
+    state = sanitizeState(state);
+    if (state.rounds.length === 0){
+      state.rounds.push({ bid: new Array(state.players.length).fill(null), actual: new Array(state.players.length).fill(null) });
+    }
+    renderHeader();
+    renderRounds();
+    setStatus("bereit (offline gespeichert)");
+  </script>
+</body>
+</html>
